@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const ProductController = require("../controller/Controller");
 const ProductControllerCustomer = require("../ControllerCustommer/Controller")
+const Payment = require("../ControllerCustommer/ControllerPayment")
 
 router.get("/products", ProductController.getAllProducts);
 router.post("/addUser", ProductController.addUser)
@@ -32,7 +33,17 @@ router.post("/addNewUser", ProductControllerCustomer.addUser)
 router.post("/loginUser", ProductControllerCustomer.loginUser)
 router.get("/getallcategory", ProductControllerCustomer.getAllCategories)
 router.get("/selectProduct", ProductControllerCustomer.selectProduct)
+router.get("/getuserInfo", ProductControllerCustomer.UserInfo)
+router.patch('/addAvata', ProductControllerCustomer.AddAvata)
+router.post("/addtoCart", ProductControllerCustomer.Addcarts)
+router.post("/getCartItems", ProductControllerCustomer.getCartItem)
+router.delete("/deleteCartItem", ProductControllerCustomer.deleteCartItems)
+router.post("/totalItemsCart", ProductControllerCustomer.totalItemsCart)
+router.post("/createOrder", ProductControllerCustomer.createOrder)
+router.get("/getListOrder", ProductControllerCustomer.getOrdersByUser)
+router.get("/getOrderDetail", ProductControllerCustomer.getOrderDetails)
 
-router.post("/productPayment", ProductControllerCustomer.payProduct)
+router.post("/productPayment", Payment.payProduct)
+
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../models/db");
 
@@ -346,7 +346,9 @@ exports.deleteDiscountCode = (req, res) => {
 };
 
 exports.addProduct = (req, res) => {
-  const {
+  console.log("Dữ liệu nhận từ frontend:", req.body);
+
+  let {
     category_id,
     product_name,
     product_image,
@@ -354,20 +356,33 @@ exports.addProduct = (req, res) => {
     price,
     stock_quantity,
     discount,
+    color,
+    size,
   } = req.body;
+
+  try {
+    color = color ? JSON.parse(color).join(", ") : ""; // Chuyển mảng thành chuỗi
+    size = size ? JSON.parse(size).join(", ") : "";
+  } catch (error) {
+    return res
+      .status(400)
+      .json({ message: "Dữ liệu color hoặc size không hợp lệ!" });
+  }
 
   if (!category_id || !product_name || !price || !stock_quantity) {
     return res
       .status(400)
       .json({ message: "Vui lòng điền đầy đủ thông tin sản phẩm" });
   }
+
   const images = product_image
     ? product_image.split(",").map((img) => img.trim())
     : [];
   const mainImage = images.length > 0 ? images[0] : null;
   const subImages = images.length > 1 ? images.slice(1) : [];
+
   const sql =
-    "INSERT INTO products (category_id, product_name, product_image, description, price, stock_quantity, discount) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    "INSERT INTO products (category_id, product_name, product_image, description, price, stock_quantity, discount, color, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
   db.query(
     sql,
@@ -379,21 +394,24 @@ exports.addProduct = (req, res) => {
       price,
       stock_quantity,
       discount,
+      color, // Giờ đã là "Xanh dương, Vàng, Xanh lá"
+      size, // Giờ đã là "m, l, xl"
     ],
     (err, result) => {
       if (err) {
+        console.error("Lỗi khi thêm sản phẩm:", err);
         return res.status(500).json({ error: "Lỗi khi thêm sản phẩm" });
       }
 
       const product_id = result.insertId;
       if (subImages.length > 0) {
         const imageQueries = subImages.map((img) => [product_id, img, false]);
-
         const imageSql =
           "INSERT INTO product_images (product_id, image_url, is_main) VALUES ?";
 
         db.query(imageSql, [imageQueries], (imageErr) => {
           if (imageErr) {
+            console.error("Lỗi khi lưu ảnh mô tả:", imageErr);
             return res.status(500).json({ error: "Lỗi khi lưu ảnh mô tả" });
           }
           return res.status(200).json({ message: "Thêm sản phẩm thành công!" });
@@ -407,7 +425,7 @@ exports.addProduct = (req, res) => {
 
 exports.getListProducts = (req, res) => {
   let sql =
-    "SELECT a.id, a.product_name, a.product_image, a.description, a.price, a.stock_quantity, a.discount, b.id AS category_id, b.category_name FROM products a JOIN categories b ON a.category_id=b.id";
+    "SELECT a.id, a.product_name, a.product_image, a.description, a.price, a.stock_quantity, a.discount, a.color, a.size, b.id AS category_id, b.category_name FROM products a JOIN categories b ON a.category_id=b.id";
   db.query(sql, (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -425,10 +443,12 @@ exports.updateProduct = (req, res) => {
     price,
     stock_quantity,
     discount,
+    color,
+    size,
     id,
   } = req.body;
   let sql =
-    "UPDATE products SET category_id = ?, product_name = ?, product_image = ?, description = ?, price = ?, stock_quantity = ?, discount = ? WHERE id = ?";
+    "UPDATE products SET category_id = ?, product_name = ?, product_image = ?, description = ?, price = ?, stock_quantity = ?, discount = ?, color = ?, size = ? WHERE id = ?";
 
   db.query(
     sql,
@@ -440,6 +460,8 @@ exports.updateProduct = (req, res) => {
       price,
       stock_quantity,
       discount,
+      color,
+      size,
       id,
     ],
     (err, result) => {

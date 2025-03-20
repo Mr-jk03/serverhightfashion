@@ -11,6 +11,7 @@ const PORT = 3001;
 app.use(cors());
 app.use(bodyParser.json());
 app.use("/api", routes);
+app.use("/uploads", express.static("uploads"));
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
