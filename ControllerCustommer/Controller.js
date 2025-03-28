@@ -6,12 +6,14 @@ const crypto = require("crypto");
 const querystring = require("querystring");
 const db = require("../models/db");
 const { error } = require("console");
-const config = {
-  vnp_TmnCode: "KTVN86IN",
-  vnp_HashSecret: "9VTDHVXV1TRO2IAV2UWU5M51BGCNKIY6",
-  vnp_Url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-  vnp_ReturnUrl: "https://2b01-95-173-218-70.ngrok-free.app",
-};
+const nodemailer = require("nodemailer");
+const moment = require("moment");
+// const config = {
+//   vnp_TmnCode: "KTVN86IN",
+//   vnp_HashSecret: "9VTDHVXV1TRO2IAV2UWU5M51BGCNKIY6",
+//   vnp_Url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+//   vnp_ReturnUrl: "https://2b01-95-173-218-70.ngrok-free.app",
+// };
 
 exports.addUser = async (req, res) => {
   try {
@@ -289,14 +291,22 @@ exports.createOrder = (req, res) => {
   if (!user_id || !items || items.length === 0) {
     return res.status(400).json({ error: "Dữ liệu không hợp lệ!" });
   }
-
+  const orderTimestamp = moment().format("YYYYMMDDHHmmss");
+  const order_code = `OD_${orderTimestamp}_${user_id}`;
   const total_price = items.reduce((acc, item) => acc + item.price, 0);
 
   db.beginTransaction((err) => {
     if (err) return res.status(500).json({ error: err.message });
     db.query(
-      "INSERT INTO orders (user_id, total_price, payment_method, address, detail_address) VALUES (?, ?, ?, ?, ?)",
-      [user_id, total_price, payment_method, address, detail_address],
+      "INSERT INTO orders (user_id, total_price, payment_method, address, detail_address, order_code) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        user_id,
+        total_price,
+        payment_method,
+        address,
+        detail_address,
+        order_code,
+      ],
       (err, result) => {
         if (err) {
           return db.rollback(() =>
@@ -371,3 +381,40 @@ exports.getOrderDetails = (req, res) => {
     res.status(200).json(results);
   });
 };
+
+/**Gửi mail thông báo của khách hàng */
+
+// const sendOrderNotification = async () => {
+//   const transporter = nodemailer.createTransport({
+//     service: "gmail",
+//     auth: {
+//       user: "your-email@gmail.com", // Thay bằng email của bạn
+//       pass: "your-email-password",  // Lấy mật khẩu ứng dụng từ Google
+//     },
+//   });
+
+//   const mailOptions = {
+//     from: "your-email@gmail.com",
+//     to: "giangcuong0603@gmail.com", // Email admin nhận thông báo
+//     subject: "Thông báo: Có đơn hàng mới!",
+//     html: `<h3>Thông báo</h3>
+//            <p>Hệ thống vừa ghi nhận một đơn hàng mới.</p>
+//            <p>Vui lòng kiểm tra trên hệ thống quản lý.</p>
+//            <a href="https://your-admin-panel.com/orders">Xem danh sách đơn hàng</a>`,
+//   };
+
+//   await transporter.sendMail(mailOptions);
+// };
+
+// exports.sendEmail = async(req, res) => {
+//   try {
+//     const newOrder = req.body;
+//     const result = await db.query("INSERT INTO orders SET ?", newOrder);
+
+//     await sendOrderNotification(newOrder); // Gửi email cho admin
+
+//     res.json({ success: true, message: "Đơn hàng đã được đặt!" });
+//   } catch (error) {
+//     res.status(500).json({ error: "Lỗi khi đặt hàng" });
+//   }
+// };

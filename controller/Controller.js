@@ -500,3 +500,81 @@ exports.getDataPieChart = (req, res) => {
     return res.status(200).json({ data: results });
   });
 };
+
+exports.getdataDashboard = (req, res) => {
+  let sql = `
+    SELECT 
+      o.id,
+      o.user_id,
+      u.full_name AS customer_name,
+      o.total_price,
+      o.order_status,
+      o.created_at,
+      o.order_code,
+      o.address,
+      o.detail_address,
+      o.payment_method,
+      o.total_price,
+      o.created_at,
+      od.product_id,
+      od.quantity,
+      od.price,
+      od.color,
+      od.size,
+      pr.product_name,
+      pr.product_image
+    FROM orders o
+    JOIN users u ON o.user_id = u.id 
+    JOIN order_details od ON o.id = od.order_id
+    JOIN products pr ON od.product_id = pr.id
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Không có đơn hàng !" });
+    }
+
+    // Group đơn hàng theo user_id và order_code
+    const ordersMap = {};
+
+    results.forEach((row) => {
+      const orderKey = `${row.user_id}_${row.order_code}`;
+
+      if (!ordersMap[orderKey]) {
+        ordersMap[orderKey] = {
+          id: row.id,
+          user_id: row.user_id,
+          customer_name: row.customer_name,
+          payment_method: row.payment_method,
+          order_status: row.order_status,
+          total_price: row.total_price,
+          address: row.address,
+          detail_address: row.detail_address,
+          created_at: row.created_at,
+          order_code: row.order_code,
+          items: []
+        };
+      }
+
+      // Thêm sản phẩm vào danh sách items
+      ordersMap[orderKey].items.push({
+        product_id: row.product_id,
+        product_name: row.product_name,
+        product_image: row.product_image,
+        color: row.color,
+        size: row.size,
+        quantity: row.quantity,
+        price: row.price
+      });
+    });
+
+    // Chuyển object thành array
+    const formattedData = Object.values(ordersMap);
+
+    return res.status(200).json({ data: formattedData });
+  });
+};
+

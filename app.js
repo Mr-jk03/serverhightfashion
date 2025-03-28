@@ -1,15 +1,16 @@
+
 require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
 const routes = require("./routes");
 
-
 const app = express();
-const PORT = 3001;
+const PORT = 3005;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // ✅ Xử lý JSON từ request body
+app.use(express.urlencoded({ extended: true })); // ✅ Hỗ trợ form-urlencoded
+
 app.use("/api", routes);
 app.use("/uploads", express.static("uploads"));
 
