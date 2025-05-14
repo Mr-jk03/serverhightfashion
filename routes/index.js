@@ -1,53 +1,65 @@
 const express = require("express");
 const router = express.Router();
 const ProductController = require("../controller/Controller");
-const ProductControllerCustomer = require("../ControllerCustommer/Controller")
-const Payment = require("../ControllerCustommer/ControllerPayment")
+const ProductControllerCustomer = require("../ControllerCustommer/Controller");
+const Payment = require("../ControllerCustommer/ControllerPayment");
+const botReply = require("../ControllerCustommer/ChatBot");
 
 router.get("/products", ProductController.getAllProducts);
-router.post("/addUser", ProductController.addUser)
-router.post("/login", ProductController.loginUser)
-router.get("/totalcustomer", ProductController.getAllCustomerNumber)
-router.get("/getallcategoryadmin", ProductController.getAllCategories)
-router.post("/addCategory", ProductController.addCategory)
-router.delete("/deleteCategory", ProductController.deleteCategory)
-router.patch("/updateCategory", ProductController.updateCategory)
-router.get("/getListCustomer", ProductController.getListCustomer)
-router.delete("/deleteUser", ProductController.deteleCustomer)
-router.post("/addBanner",ProductController.addBanner)
-router.get("/getBannerList", ProductController.getBanner)
-router.delete("/deleteBanner", ProductController.deleteBanner)
-router.patch("/updateBanner", ProductController.updateBanner)
-router.post("/addDiscountCode", ProductController.addDiscountCode)
-router.get("/getListDiscount", ProductController.getDisCountList)
-router.patch("/updateDiscount", ProductController.updateDiscount)
-router.delete("/deleteDiscount", ProductController.deleteDiscountCode)
-router.post("/addProduct", ProductController.addProduct)
-router.get("/getListProducts", ProductController.getListProducts)
-router.patch("/updateProduct", ProductController.updateProduct)
-router.delete("/deleteProduct", ProductController.deleteProduct)
-router.get("/getdataPieChar", ProductController.getDataPieChart)
-router.get('/getDataDashboard', ProductController.getdataDashboard)
+router.post("/addUser", ProductController.addUser);
+router.post("/login", ProductController.loginUser);
+router.get("/totalcustomer", ProductController.getAllCustomerNumber);
+router.get("/getallcategoryadmin", ProductController.getAllCategories);
+router.post("/addCategory", ProductController.addCategory);
+router.delete("/deleteCategory", ProductController.deleteCategory);
+router.patch("/updateCategory", ProductController.updateCategory);
+router.get("/getListCustomer", ProductController.getListCustomer);
+router.delete("/deleteUser", ProductController.deteleCustomer);
+router.post("/addBanner", ProductController.addBanner);
+router.get("/getBannerList", ProductController.getBanner);
+router.delete("/deleteBanner", ProductController.deleteBanner);
+router.patch("/updateBanner", ProductController.updateBanner);
+router.post("/addDiscountCode", ProductController.addDiscountCode);
+router.get("/getListDiscount", ProductController.getDisCountList);
+router.patch("/updateDiscount", ProductController.updateDiscount);
+router.delete("/deleteDiscount", ProductController.deleteDiscountCode);
+router.post("/addProduct", ProductController.addProduct);
+router.get("/getListProducts", ProductController.getListProducts);
+router.patch("/updateProduct", ProductController.updateProduct);
+router.delete("/deleteProduct", ProductController.deleteProduct);
+router.get("/getdataPieChar", ProductController.getDataPieChart);
+router.get("/getDataDashboard", ProductController.getdataDashboard);
+router.get("/getListInventory", ProductController.getListInventory);
+router.post("/addPrdtoStock", ProductController.AddPrdToStock);
+router.delete("/deletePrdInStock", ProductController.DeletePrdInStock);
+router.put("/updateStatusOrder", ProductController.updateStatusOrder);
 
 /**--- */
-router.post("/addNewUser", ProductControllerCustomer.addUser)
-router.post("/loginUser", ProductControllerCustomer.loginUser)
-router.get("/getallcategory", ProductControllerCustomer.getAllCategories)
-router.get("/selectProduct", ProductControllerCustomer.selectProduct)
-router.get("/getuserInfo", ProductControllerCustomer.UserInfo)
-router.patch('/addAvata', ProductControllerCustomer.AddAvata)
-router.post("/addtoCart", ProductControllerCustomer.Addcarts)
-router.post("/getCartItems", ProductControllerCustomer.getCartItem)
-router.delete("/deleteCartItem", ProductControllerCustomer.deleteCartItems)
-router.post("/totalItemsCart", ProductControllerCustomer.totalItemsCart)
-router.post("/createOrder", ProductControllerCustomer.createOrder)
-router.get("/getListOrder", ProductControllerCustomer.getOrdersByUser)
-router.get("/getOrderDetail", ProductControllerCustomer.getOrderDetails)
+router.post("/addNewUser", ProductControllerCustomer.addUser);
+router.post("/loginUser", ProductControllerCustomer.loginUser);
+router.get("/getallcategory", ProductControllerCustomer.getAllCategories);
+router.get("/selectProduct", ProductControllerCustomer.selectProduct);
+router.get("/getuserInfo", ProductControllerCustomer.UserInfo);
+router.patch("/addAvata", ProductControllerCustomer.AddAvata);
+router.post("/addtoCart", ProductControllerCustomer.Addcarts);
+router.post("/getCartItems", ProductControllerCustomer.getCartItem);
+router.delete("/deleteCartItem", ProductControllerCustomer.deleteCartItems);
+router.post("/totalItemsCart", ProductControllerCustomer.totalItemsCart);
+router.post("/createOrder", ProductControllerCustomer.createOrder);
+router.get("/getListOrder", ProductControllerCustomer.getOrdersByUser);
+router.get("/getOrderDetail", ProductControllerCustomer.getOrderDetails);
+router.post(
+  "/addFavoriteProduct",
+  ProductControllerCustomer.addFavoriteProduct
+);
 
-router.post("/productPayment", Payment.createPayment)
-router.get("/IPN", Payment.getVNPay_inp)
-router.get("/vnpay_return", Payment.vnpayReturn)
+router.post("/productPayment", Payment.createPayment);
+router.get("/IPN", Payment.getVNPay_inp);
+router.get("/vnpay_return", Payment.vnpayReturn);
 /**-------- */
+
+/**--------chatbot */
+router.post("/botRepply", botReply.repComment);
 
 const querystring = require("qs");
 const crypto = require("crypto");
@@ -98,7 +110,9 @@ router.get("/create-payment", (req, res) => {
 
   // 🌟 Bước 5: Tạo paymentUrl
   let paymentUrl =
-    config.vnpUrl + "?" + querystring.stringify(finalSortedParams, { encode: true });
+    config.vnpUrl +
+    "?" +
+    querystring.stringify(finalSortedParams, { encode: true });
 
   console.log("paymentUrl", paymentUrl);
 

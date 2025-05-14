@@ -7,7 +7,7 @@ const { sendOrderNotification } = require("../sendMail/sendMail");
 const tmnCode = "KTVN86IN"; // Mã Merchant từ VNPAY
 const secretKey = "7KRK07TCMGH6XYT8IZHTUWH5D2AAPZOJ"; // Chuỗi bí mật từ VNPAY
 const vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; // URL VNPAY
-const returnUrl = "http://192.168.47.119:3000/statusOrder"; // URL nhận kết quả
+const returnUrl = "http://192.168.144.119:3000/statusOrder"; // URL nhận kết quả
 
 exports.createPayment = (req, res) => {
   try {
@@ -215,3 +215,4 @@ exports.vnpayReturn = (req, res) => {
       .json({ RspCode: "99", Message: "Internal Server Error" });
   }
 };
+

@@ -137,6 +137,7 @@ exports.selectProduct = (req, res) => {
     a.size, 
     b.id AS category_id, 
     b.category_name,
+    b.brand,
     GROUP_CONCAT(c.image_url SEPARATOR ', ') AS additional_images
     FROM products a
     JOIN categories b ON a.category_id = b.id
@@ -234,13 +235,13 @@ exports.AddAvata = (req, res) => {
 };
 
 exports.Addcarts = (req, res) => {
-  const { user_id, product_id, color, size, quantity } = req.body;
+  const { user_id, product_id, color, size, brand, quantity } = req.body;
 
   let sql =
-    "INSERT INTO cart (user_id, product_id, color, size, quantity ) VALUES (?, ?, ?, ?, ?)";
+    "INSERT INTO cart (user_id, product_id, color, size, brand, quantity ) VALUES (?, ?, ?, ?, ?, ?)";
   db.query(
     sql,
-    [user_id, product_id, color, size, quantity],
+    [user_id, product_id, color, size, brand, quantity],
     (err, results) => {
       if (err) {
         return res.status(500).json({ error: err.message });
@@ -253,7 +254,7 @@ exports.Addcarts = (req, res) => {
 };
 exports.getCartItem = (req, res) => {
   const { user_id } = req.body;
-  let sql = `SELECT a.id, a.product_id, a.color, a.size, a.quantity, b.product_name, b.product_image, b.price FROM cart a JOIN products b ON a.product_id = b.id WHERE user_id = ?`;
+  let sql = `SELECT a.id, a.product_id, a.color, a.size, a.brand, a.quantity, b.product_name, b.product_image, b.price FROM cart a JOIN products b ON a.product_id = b.id WHERE user_id = ?`;
   db.query(sql, [user_id], (err, result) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -323,10 +324,11 @@ exports.createOrder = (req, res) => {
           item.size,
           item.quantity,
           item.price,
+          item.brand,
         ]);
 
         db.query(
-          "INSERT INTO order_details (order_id, product_id, product_image, color, size, quantity, price) VALUES ?",
+          "INSERT INTO order_details (order_id, product_id, product_image, color, size, quantity, price, brand) VALUES ?",
           [values],
           (err) => {
             if (err) {
@@ -382,39 +384,37 @@ exports.getOrderDetails = (req, res) => {
   });
 };
 
-/**Gửi mail thông báo của khách hàng */
+exports.addFavoriteProduct = (req, res) => {
+  const { user_id, product_id } = req.body;
+  let sql = "INSERT INTO favorite_product (user_id, product_id) VALUES (?, ?)";
 
-// const sendOrderNotification = async () => {
-//   const transporter = nodemailer.createTransport({
-//     service: "gmail",
-//     auth: {
-//       user: "your-email@gmail.com", // Thay bằng email của bạn
-//       pass: "your-email-password",  // Lấy mật khẩu ứng dụng từ Google
-//     },
-//   });
+  db.query(sql, [user_id, product_id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: err.message });
+    }
+    return res
+      .status(200)
+      .json({ message: "Thêm sản phẩm yêu thích thành công" });
+  });
+};
 
-//   const mailOptions = {
-//     from: "your-email@gmail.com",
-//     to: "giangcuong0603@gmail.com", // Email admin nhận thông báo
-//     subject: "Thông báo: Có đơn hàng mới!",
-//     html: `<h3>Thông báo</h3>
-//            <p>Hệ thống vừa ghi nhận một đơn hàng mới.</p>
-//            <p>Vui lòng kiểm tra trên hệ thống quản lý.</p>
-//            <a href="https://your-admin-panel.com/orders">Xem danh sách đơn hàng</a>`,
-//   };
+exports.deleteFavoritePrd = (req, res) => {
+  const { id } = req.body;
+  db.query(
+    "DELETE FROM favorite_product WHERE id = ?",
+    [id],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({ message: err.message });
+      }
+      return res
+        .status(200)
+        .json({ message: "Xóa sản phẩm yêu thích thành công" });
+    }
+  );
+};
 
-//   await transporter.sendMail(mailOptions);
-// };
 
-// exports.sendEmail = async(req, res) => {
-//   try {
-//     const newOrder = req.body;
-//     const result = await db.query("INSERT INTO orders SET ?", newOrder);
 
-//     await sendOrderNotification(newOrder); // Gửi email cho admin
 
-//     res.json({ success: true, message: "Đơn hàng đã được đặt!" });
-//   } catch (error) {
-//     res.status(500).json({ error: "Lỗi khi đặt hàng" });
-//   }
-// };
+

@@ -120,18 +120,20 @@ exports.getAllCategories = (req, res) => {
 };
 
 exports.addCategory = (req, res) => {
-  const { category_name, description } = req.body;
+  const { category_name, brand, description } = req.body;
   if (!category_name) {
     return res.status(400).json({ message: "Vui lòng điền tên danh mục" });
   }
-  let sql = "INSERT INTO categories (category_name, description) VALUES (?, ?)";
-  db.query(sql, [category_name, description], (err) => {
+  let sql =
+    "INSERT INTO categories (category_name, brand, description) VALUES (?, ?, ?)";
+  db.query(sql, [category_name, brand, description], (err) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     res.status(200).json({ message: "Thêm danh mục thành công" });
   });
 };
+
 exports.deleteCategory = (req, res) => {
   const { id } = req.query;
   let sql = "DELETE FROM categories WHERE id = ?";
@@ -143,15 +145,15 @@ exports.deleteCategory = (req, res) => {
   });
 };
 exports.updateCategory = (req, res) => {
-  const { id, category_name, description } = req.body;
+  const { id, category_name, brand, description } = req.body;
   if (!category_name) {
     return res
       .status(400)
       .json({ message: "Vui lòng điền thông tin danh mục" });
   }
   let sql =
-    "UPDATE categories SET category_name = ?, description = ? WHERE id = ?";
-  db.query(sql, [category_name, description, id], (err, result) => {
+    "UPDATE categories SET category_name = ?, brand = ?, description = ? WHERE id = ?";
+  db.query(sql, [category_name, brand, description, id], (err, result) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -172,6 +174,7 @@ exports.getListCustomer = (req, res) => {
       if (!results || results.length === 0) {
         return res.status(404).json({ message: "Không có khách hàng nào" });
       }
+
       const totalCustomer = results[0].totalcustomer;
       const totalPagesCustomer = Math.ceil(totalCustomer / limit);
 
@@ -180,13 +183,22 @@ exports.getListCustomer = (req, res) => {
         [limit, offset],
         (err, result) => {
           if (err) {
-            return res.json({ error: err.message });
+            return res.status(500).json({ error: err.message });
           }
+
+          // Xử lý avata nếu có
+          const customers = result.map((user) => {
+            if (user.avata) {
+              user.avata = `${req.protocol}://${req.get("host")}${user.avata}`;
+            }
+            return user;
+          });
+
           return res.status(200).json({
             totalPagesCustomer,
             totalCustomer,
             currentPage: page,
-            data: result,
+            data: customers,
           });
         }
       );
@@ -346,8 +358,6 @@ exports.deleteDiscountCode = (req, res) => {
 };
 
 exports.addProduct = (req, res) => {
-  console.log("Dữ liệu nhận từ frontend:", req.body);
-
   let {
     category_id,
     product_name,
@@ -424,8 +434,19 @@ exports.addProduct = (req, res) => {
 };
 
 exports.getListProducts = (req, res) => {
-  let sql =
-    "SELECT a.id, a.product_name, a.product_image, a.description, a.price, a.stock_quantity, a.discount, a.color, a.size, b.id AS category_id, b.category_name FROM products a JOIN categories b ON a.category_id=b.id";
+  let sql = `SELECT a.id, 
+    a.product_name, 
+    a.product_image, 
+    a.description, 
+    a.price, 
+    a.stock_quantity, 
+    a.discount, 
+    a.color, 
+    a.size, 
+    b.id AS category_id, 
+    b.category_name,
+    b.brand 
+    FROM products a JOIN categories b ON a.category_id=b.id`;
   db.query(sql, (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -521,6 +542,7 @@ exports.getdataDashboard = (req, res) => {
       od.price,
       od.color,
       od.size,
+      od.brand,
       pr.product_name,
       pr.product_image
     FROM orders o
@@ -555,7 +577,7 @@ exports.getdataDashboard = (req, res) => {
           detail_address: row.detail_address,
           created_at: row.created_at,
           order_code: row.order_code,
-          items: []
+          items: [],
         };
       }
 
@@ -566,8 +588,9 @@ exports.getdataDashboard = (req, res) => {
         product_image: row.product_image,
         color: row.color,
         size: row.size,
+        brand: row.brand,
         quantity: row.quantity,
-        price: row.price
+        price: row.price,
       });
     });
 
@@ -578,3 +601,123 @@ exports.getdataDashboard = (req, res) => {
   });
 };
 
+/**-------order */
+exports.updateStatusOrder = (req, res) => {
+  const { order_status, id } = req.body;
+  
+  if (!id) {
+    return res.status(400).json({ message: "Thiếu id đơn hàng" });
+  }
+
+  if (!order_status) {
+    return res.status(400).json({ message: "Không có trạng thái được cập nhật" });
+  }
+
+  const sql = `UPDATE orders SET order_status = ? WHERE id = ?`;
+  db.query(sql, [order_status, id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: err.message });
+    }
+    return res.status(200).json({ message: "Cập nhật trạng thái đơn hàng thành công" });
+  });
+};
+
+
+/**-----------inventory */
+
+exports.getListInventory = (req, res) => {
+  let sql = `SELECT * FROM inventory`;
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: message.error });
+    }
+
+    return res.status(200).json({
+      message:
+        result.length === 0 ? "Không có dữ liệu" : "Lấy dữ liệu thành công",
+      data: result,
+    });
+  });
+};
+exports.AddPrdToStock = (req, res) => {
+  const {
+    dateofentry,
+    brandname,
+    product_name,
+    stock_quantity,
+    import_price,
+    unit,
+    total_price,
+    color,
+    size,
+    note,
+  } = req.body;
+
+  if (
+    !dateofentry ||
+    !brandname ||
+    !product_name ||
+    !stock_quantity ||
+    !import_price ||
+    !unit ||
+    !total_price ||
+    !color ||
+    !size
+  ) {
+    return res.status(400).json({
+      message: "Vui lòng nhập đầy đủ thông tin!",
+    });
+  }
+
+  const sql = `
+    INSERT INTO inventory (
+      dateofentry, 
+      brandname, 
+      product_name, 
+      stock_quantity, 
+      import_price, 
+      unit, 
+      total_price, 
+      color, 
+      size,
+      note
+    ) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  db.query(
+    sql,
+    [
+      dateofentry,
+      brandname,
+      product_name,
+      stock_quantity,
+      import_price,
+      unit,
+      total_price,
+      color,
+      size,
+      note,
+    ],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({ message: err.message });
+      }
+      return res.status(200).json({ message: "Thêm thành công!" });
+    }
+  );
+};
+
+exports.DeletePrdInStock = (req, res) => {
+  const { id } = req.query;
+
+  let sql = `DELETE FROM inventory WHERE id = ?`;
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: err.message });
+    }
+    if (!id) {
+      return res.status(404).json({ message: "Không tìm thấy id!" });
+    }
+    return res.status(200).json({ message: "Xóa thành công!" });
+  });
+};
