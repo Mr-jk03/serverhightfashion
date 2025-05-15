@@ -40,22 +40,23 @@ exports.addUser = async (req, res) => {
 
 exports.loginUser = (req, res) => {
   const { email, password } = req.body;
-
   db.query(
-    "SELECT * FROM users WHERE email = ? AND role = 'admin'",
+    "SELECT * FROM users WHERE email = ? AND (role = 'admin' OR role = 'warehouse')",
     [email],
     async (err, results) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
+
       if (results.length === 0) {
         return res
           .status(404)
-          .json({ message: "Chỉ admin mới có quyền truy cập" });
+          .json({ message: "Chỉ admin hoặc nhân viên mới có quyền truy cập" });
       }
 
       const user = results[0];
       const isMatch = await bcrypt.compare(password, user.password);
+
       if (!isMatch) {
         return res.status(401).json({ message: "Mật khẩu không đúng" });
       }
@@ -65,13 +66,19 @@ exports.loginUser = (req, res) => {
         "giangxuancuong",
         { expiresIn: "1h" }
       );
+
       res.status(200).json({
         message: "Đăng nhập thành công",
+        data: {
+          email: user.email,
+          role: user.role,
+        },
         token,
       });
     }
   );
 };
+
 exports.getAllCustomerNumber = (req, res) => {
   db.query(
     "SELECT COUNT(*) AS total_customers FROM users WHERE role = 'customer'",
@@ -180,6 +187,53 @@ exports.getListCustomer = (req, res) => {
 
       db.query(
         "SELECT * FROM users WHERE role = 'customer' LIMIT ? OFFSET ?",
+        [limit, offset],
+        (err, result) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+
+          // Xử lý avata nếu có
+          const customers = result.map((user) => {
+            if (user.avata) {
+              user.avata = `${req.protocol}://${req.get("host")}${user.avata}`;
+            }
+            return user;
+          });
+
+          return res.status(200).json({
+            totalPagesCustomer,
+            totalCustomer,
+            currentPage: page,
+            data: customers,
+          });
+        }
+      );
+    }
+  );
+};
+exports.getListwarehouse = (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  db.query(
+    "SELECT COUNT(*) AS totalcustomer FROM users WHERE role = 'warehouse'",
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      if (!results || results.length === 0) {
+        return res
+          .status(404)
+          .json({ message: "Không có nhân viên thủ kho nào" });
+      }
+
+      const totalCustomer = results[0].totalcustomer;
+      const totalPagesCustomer = Math.ceil(totalCustomer / limit);
+
+      db.query(
+        "SELECT * FROM users WHERE role = 'warehouse' LIMIT ? OFFSET ?",
         [limit, offset],
         (err, result) => {
           if (err) {
@@ -371,15 +425,17 @@ exports.addProduct = (req, res) => {
   } = req.body;
 
   try {
-    color = color ? JSON.parse(color).join(", ") : ""; // Chuyển mảng thành chuỗi
-    size = size ? JSON.parse(size).join(", ") : "";
+    // color = color ? JSON.parse(color).join(", ") : ""; // Chuyển mảng thành chuỗi
+    // size = size ? JSON.parse(size).join(", ") : "";
+    color = color ? color : "";
+    size = size ? size : "";
   } catch (error) {
     return res
       .status(400)
       .json({ message: "Dữ liệu color hoặc size không hợp lệ!" });
   }
 
-  if (!category_id || !product_name || !price || !stock_quantity) {
+  if (!category_id || !product_name || !price) {
     return res
       .status(400)
       .json({ message: "Vui lòng điền đầy đủ thông tin sản phẩm" });
@@ -495,11 +551,33 @@ exports.updateProduct = (req, res) => {
 };
 exports.deleteProduct = (req, res) => {
   const { id } = req.query;
-  db.query("DELETE FROM products WHERE id = ?", [id], (err, results) => {
+
+  if (!id) {
+    return res.status(400).json({ error: "Thiếu id sản phẩm" });
+  }
+
+  // Bước 1: Xóa ảnh liên quan trong product_images
+  const deleteImagesSql = "DELETE FROM product_images WHERE product_id = ?";
+  db.query(deleteImagesSql, [id], (err) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      console.error("Lỗi khi xóa ảnh sản phẩm:", err);
+      return res.status(500).json({ error: "Lỗi khi xóa ảnh sản phẩm" });
     }
-    return res.status(200).json({ message: "Xóa sản phẩm thành công !" });
+
+    // Bước 2: Xóa sản phẩm chính
+    const deleteProductSql = "DELETE FROM products WHERE id = ?";
+    db.query(deleteProductSql, [id], (err2, results) => {
+      if (err2) {
+        console.error("Lỗi khi xóa sản phẩm:", err2);
+        return res.status(500).json({ error: "Lỗi khi xóa sản phẩm" });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+      }
+
+      return res.status(200).json({ message: "Xóa sản phẩm thành công!" });
+    });
   });
 };
 
@@ -604,13 +682,15 @@ exports.getdataDashboard = (req, res) => {
 /**-------order */
 exports.updateStatusOrder = (req, res) => {
   const { order_status, id } = req.body;
-  
+
   if (!id) {
     return res.status(400).json({ message: "Thiếu id đơn hàng" });
   }
 
   if (!order_status) {
-    return res.status(400).json({ message: "Không có trạng thái được cập nhật" });
+    return res
+      .status(400)
+      .json({ message: "Không có trạng thái được cập nhật" });
   }
 
   const sql = `UPDATE orders SET order_status = ? WHERE id = ?`;
@@ -618,10 +698,11 @@ exports.updateStatusOrder = (req, res) => {
     if (err) {
       return res.status(500).json({ message: err.message });
     }
-    return res.status(200).json({ message: "Cập nhật trạng thái đơn hàng thành công" });
+    return res
+      .status(200)
+      .json({ message: "Cập nhật trạng thái đơn hàng thành công" });
   });
 };
-
 
 /**-----------inventory */
 

@@ -8,12 +8,6 @@ const db = require("../models/db");
 const { error } = require("console");
 const nodemailer = require("nodemailer");
 const moment = require("moment");
-// const config = {
-//   vnp_TmnCode: "KTVN86IN",
-//   vnp_HashSecret: "9VTDHVXV1TRO2IAV2UWU5M51BGCNKIY6",
-//   vnp_Url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-//   vnp_ReturnUrl: "https://2b01-95-173-218-70.ngrok-free.app",
-// };
 
 exports.addUser = async (req, res) => {
   try {
@@ -398,6 +392,32 @@ exports.addFavoriteProduct = (req, res) => {
   });
 };
 
+exports.getFavoriteProduct = (req, res) => {
+  const { userId } = req.body;
+
+  if (userId == null) {
+    return res
+      .status(400)
+      .json({ message: "Tài khoản chưa đăng nhập, Vui lòng đăng nhập" });
+  }
+  let sql = `SELECT 
+              a.user_id,
+              p.product_name, 
+              p.product_image FROM favorite_product as a 
+              JOIN products as p 
+              ON p.id = a.product_id 
+              WHERE a.user_id = ?`;
+  db.query(sql, [userId], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: "Lỗi server!" });
+    }
+    if (!result || result.length == 0) {
+      return res.status(200).json({ data: [] });
+    }
+    return res.status(200).json({ data: result });
+  });
+};
+
 exports.deleteFavoritePrd = (req, res) => {
   const { id } = req.body;
   db.query(
@@ -414,7 +434,30 @@ exports.deleteFavoritePrd = (req, res) => {
   );
 };
 
+/**Sản phẩm bán chạy */
 
-
-
-
+exports.getListBestSalerProduct = (req, res) => {
+  let sql = `SELECT 
+            p.*, 
+            pi.image_url, 
+            c.brand,
+            COUNT(od.product_id) AS Total
+          FROM order_details od
+          JOIN products p ON od.product_id = p.id
+          LEFT JOIN product_images pi ON p.id = pi.product_id
+          LEFT JOIN categories c ON p.category_id = c.id
+          GROUP BY p.id
+          HAVING Total > 5;
+              `;
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: err.message });
+    }
+    if (result.length == 0) {
+      return res
+        .status(404)
+        .json({ message: "Không có sản phẩm bán chạy nào !" });
+    }
+    return res.status(200).json({ data: result });
+  });
+};

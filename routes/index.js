@@ -33,6 +33,7 @@ router.get("/getListInventory", ProductController.getListInventory);
 router.post("/addPrdtoStock", ProductController.AddPrdToStock);
 router.delete("/deletePrdInStock", ProductController.DeletePrdInStock);
 router.put("/updateStatusOrder", ProductController.updateStatusOrder);
+router.get("/getListwarehouse", ProductController.getListwarehouse);
 
 /**--- */
 router.post("/addNewUser", ProductControllerCustomer.addUser);
@@ -52,12 +53,19 @@ router.post(
   "/addFavoriteProduct",
   ProductControllerCustomer.addFavoriteProduct
 );
+router.post("/getFavoriteByUser", ProductControllerCustomer.getFavoriteProduct);
 
 router.post("/productPayment", Payment.createPayment);
 router.get("/IPN", Payment.getVNPay_inp);
 router.get("/vnpay_return", Payment.vnpayReturn);
-/**-------- */
+router.get(
+  "/getListProductBestSaler",
+  ProductControllerCustomer.getListBestSalerProduct
+);
 
+/**-------- */
+//JOIN categories b ON a.category_id = b.id
+//LEFT JOIN product_images c ON a.id = c.product_id
 /**--------chatbot */
 router.post("/botRepply", botReply.repComment);
 
