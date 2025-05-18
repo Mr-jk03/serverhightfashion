@@ -119,25 +119,26 @@ exports.getAllCategories = (req, res) => {
 exports.selectProduct = (req, res) => {
   const { id } = req.query;
   const sql = `
-  SELECT 
-    a.id, 
-    a.product_name, 
-    a.product_image, 
-    a.description, 
-    a.price, 
-    a.stock_quantity, 
-    a.discount,
-    a.color,
-    a.size, 
-    b.id AS category_id, 
-    b.category_name,
-    b.brand,
-    GROUP_CONCAT(c.image_url SEPARATOR ', ') AS additional_images
-    FROM products a
-    JOIN categories b ON a.category_id = b.id
-    LEFT JOIN product_images c ON a.id = c.product_id
-    WHERE b.id = ? 
-    GROUP BY a.id;
+          SELECT 
+            a.id, 
+            a.product_name, 
+            a.product_image, 
+            a.description, 
+            a.price, 
+            i.stock_quantity,  -- Lấy số lượng từ bảng inventory
+            a.discount,
+            a.color,
+            a.size, 
+            b.id AS category_id, 
+            b.category_name,
+            b.brand,
+            GROUP_CONCAT(c.image_url SEPARATOR ', ') AS additional_images
+        FROM products a
+        JOIN categories b ON a.category_id = b.id
+        LEFT JOIN product_images c ON a.id = c.product_id
+        LEFT JOIN inventory i ON a.id = i.product_id  -- Thêm JOIN với bảng inventory
+        WHERE b.id = ? 
+        GROUP BY a.id;
     `;
   db.query(sql, [id], (err, result) => {
     if (err) {
@@ -461,3 +462,5 @@ exports.getListBestSalerProduct = (req, res) => {
     return res.status(200).json({ data: result });
   });
 };
+
+/** phụ kiện */

@@ -192,6 +192,28 @@ const trainNLP = async () => {
     "Tôi muốn đăng ký tài khoản mới",
     "product.register"
   );
+  manager.addDocument("vi", "Chào bạn", "product.hello");
+  manager.addDocument("vi", "Hello", "product.hello");
+  manager.addDocument("vi", "Xin chào bạn nhé", "product.hello");
+  manager.addDocument("vi", "Hi", "product.hello");
+  manager.addDocument("vi", "Chào shop", "product.hello");
+  manager.addDocument("vi", "Tôi muốn nói chuyện", "product.hello");
+  manager.addDocument("vi", "Có ai ở đó không?", "product.hello");
+  manager.addDocument("vi", "Tôi cần hỗ trợ", "product.hello");
+  manager.addDocument("vi", "Chào ngày mới", "product.hello");
+  manager.addDocument("vi", "Mình cần tư vấn", "product.hello");
+
+  manager.addDocument("vi", "Cảm ơn", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn bạn", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn rất nhiều", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn nhiều nhé", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn vì đã giúp đỡ", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn bạn rất nhiều", "product.thanks");
+  manager.addDocument("vi", "Mình biết ơn lắm", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn nha", "product.thanks");
+  manager.addDocument("vi", "Xin cảm ơn", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn sự hỗ trợ của bạn", "product.thanks");
+  manager.addDocument("vi", "Cảm ơn đã tư vấn", "product.thanks");
 
   // Trả lời mẫu
   manager.addAnswer(

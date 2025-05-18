@@ -681,28 +681,51 @@ exports.getdataDashboard = (req, res) => {
 
 /**-------order */
 exports.updateStatusOrder = (req, res) => {
-  const { order_status, id } = req.body;
-
-  if (!id) {
-    return res.status(400).json({ message: "Thiếu id đơn hàng" });
+  const { order_status, id, products } = req.body;
+  if (!id || !Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({ message: "Thiếu thông tin đơn hàng hoặc sản phẩm" });
   }
-
-  if (!order_status) {
-    return res
-      .status(400)
-      .json({ message: "Không có trạng thái được cập nhật" });
-  }
-
-  const sql = `UPDATE orders SET order_status = ? WHERE id = ?`;
-  db.query(sql, [order_status, id], (err, result) => {
+  const sqlUpdateStatus = `UPDATE orders SET order_status = ? WHERE id = ?`;
+  db.query(sqlUpdateStatus, [order_status, id], (err, result) => {
     if (err) {
       return res.status(500).json({ message: err.message });
     }
-    return res
-      .status(200)
-      .json({ message: "Cập nhật trạng thái đơn hàng thành công" });
+    if (order_status === "shipped") {
+      // Duyệt từng sản phẩm để cập nhật số lượng tồn kho
+      const updateTasks = products.map((product) => {
+        return new Promise((resolve, reject) => {
+          const sqlUpdateStock = `
+            UPDATE inventory
+            SET stock_quantity = stock_quantity - ?
+            WHERE product_id = ?
+          `;
+          db.query(sqlUpdateStock, [product.quantity, product.product_id], (err2, result2) => {
+            if (err2) return reject(err2);
+            resolve(result2);
+          });
+        });
+      });
+
+      Promise.all(updateTasks)
+        .then(() => {
+          return res.status(200).json({
+            message: "Cập nhật trạng thái đơn hàng và trừ kho thành công",
+          });
+        })
+        .catch((err) => {
+          return res.status(500).json({
+            message: "Cập nhật trạng thái thành công nhưng lỗi khi trừ kho",
+            error: err.message,
+          });
+        });
+    } else {
+      return res
+        .status(200)
+        .json({ message: "Cập nhật trạng thái đơn hàng thành công" });
+    }
   });
 };
+
 
 /**-----------inventory */
 
@@ -721,9 +744,10 @@ exports.getListInventory = (req, res) => {
   });
 };
 exports.AddPrdToStock = (req, res) => {
-  const {
+  const obj = ({
     dateofentry,
     brandname,
+    product_id,
     product_name,
     stock_quantity,
     import_price,
@@ -732,8 +756,7 @@ exports.AddPrdToStock = (req, res) => {
     color,
     size,
     note,
-  } = req.body;
-
+  } = req.body);
   if (
     !dateofentry ||
     !brandname ||
@@ -754,6 +777,7 @@ exports.AddPrdToStock = (req, res) => {
     INSERT INTO inventory (
       dateofentry, 
       brandname, 
+      product_id,
       product_name, 
       stock_quantity, 
       import_price, 
@@ -763,13 +787,14 @@ exports.AddPrdToStock = (req, res) => {
       size,
       note
     ) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
   db.query(
     sql,
     [
       dateofentry,
       brandname,
+      product_id,
       product_name,
       stock_quantity,
       import_price,
@@ -801,4 +826,12 @@ exports.DeletePrdInStock = (req, res) => {
     }
     return res.status(200).json({ message: "Xóa thành công!" });
   });
+};
+
+/**get detail Product by Id */
+
+exports.getDetailProductById = (req, res) => {
+  const { product_id } = req.body;
+
+  let sql = "SELECT * FROM product";
 };

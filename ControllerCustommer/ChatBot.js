@@ -16,7 +16,7 @@ exports.repComment = async (req, res) => {
   const intent = response.intent;
 
   if (intent === "product.query") {
-    const sql = "SELECT product_name FROM products";
+    const sql = "SELECT product_name FROM products LIMIT 10;";
 
     db.query(sql, (err, result) => {
       if (err) {
@@ -99,6 +99,14 @@ exports.repComment = async (req, res) => {
             \n${"Cuối cùng: Quay trở lại trang đăng nhập và đăng nhập với tài khoản vừa đăng kí"}
             \n${"Chúc bạn thành công !"}
             `,
+    });
+  } else if (intent === "product.hello") {
+    return res.json({
+      reply: `Chào bạn, tôi có thể giúp gì cho bạn!`,
+    });
+  } else if (intent === "product.thanks") {
+    return res.json({
+      reply: `Không có gì, Chúc bạn mua sắm vui vẻ 😊`,
     });
   } else {
     return res.json({
